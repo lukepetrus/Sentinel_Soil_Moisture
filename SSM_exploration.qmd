@@ -4,4 +4,29 @@ format: html
 editor: visual
 ---
 
-## Quarto
+## Sourcing Data
+
+Based on my preliminary readings, it seems like the package `rstac` is going to be my best source for pre-processed and analysis-ready data.
+
+```{r}
+library(rstac)
+
+# Sets the STAC to Microsoft's Planetary Computer
+stac_source <- stac(
+  "https://planetarycomputer.microsoft.com/api/stac/v1"
+)
+
+# This one will list the data collections available in that STAC
+collections_query <- stac_source |> 
+  collections()
+
+# This runs the collection query and saves the result
+coll_list <- get_request(collections_query)
+
+library(tidyverse)
+library(purrr)
+
+readable_list <- tibble(
+  collection = map_chr(coll_list$collections, "id")
+)
+```
