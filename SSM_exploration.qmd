@@ -9,6 +9,8 @@ editor: visual
 Based on my preliminary readings, it seems like the package `rstac` is going to be my best source for pre-processed and analysis-ready data.
 
 ```{r}
+#| message: false
+
 library(rstac)
 
 # Sets the STAC to Microsoft's Planetary Computer
@@ -30,3 +32,31 @@ readable_list <- tibble(
   collection = map_chr(coll_list$collections, "id")
 )
 ```
+
+Now, I need a bounding box. To make that bounding box, I should probably pull in the onX point data of the fields and use the extent of that to create the bounding box for my rstac data query. Then, I will need to convert the points to lines and polygons in order to use the field polygons to clip the sentinel data to just the fields that I want to look at.
+
+```{r}
+#| message: false
+#| warning: false
+
+library(terra)
+
+ReinkeWheelLine <- vect("./data/FieldData/onx-markups-03132026.kml")
+LittleReinkePivot <- vect("./data/FieldData/onx-markups-03132026(1).kml")
+NReinkeWheelLine <- vect("./data/FieldData/onx-markups-03132026(2).kml")
+WilsonPivot <- vect("./data/FieldData/onx-markups-03132026(3).kml")
+NorthReinkePivot <- vect("./data/FieldData/onx-markups-03132026(4).kml")
+SouthReinkePivot <- vect("./data/FieldData/onx-markups-03132026(5).kml")
+UpperPivot <- vect("./data/FieldData/onx-markups-03132026(6).kml")
+ClarePivot <- vect("./data/FieldData/onx-markups-03132026(7).kml")
+LittleValleyPivot <- vect("./data/FieldData/onx-markups-03132026(8).kml")
+SnubPivot <- vect("./data/FieldData/onx-markups-03132026(9).kml")
+TurkeyBarnPivot <- vect("./data/FieldData/onx-markups-03132026(10).kml")
+BigValleyPivot <- vect("./data/FieldData/onx-markups-03132026(11).kml")
+NewValleyPivot <- vect("./data/FieldData/onx-markups-03132026(12).kml")
+HousePivot <- vect("./data/FieldData/onx-markups-03132026(13).kml")
+
+plot(c(ReinkeWheelLine, LittleReinkePivot, NReinkeWheelLine, WilsonPivot, NorthReinkePivot, SouthReinkePivot, UpperPivot, ClarePivot, LittleValleyPivot, SnubPivot, TurkeyBarnPivot, BigValleyPivot, NewValleyPivot, HousePivot))
+```
+
+Well, that didn't quite work like I'd hoped, but it did work well enough to see that there are some problems with this data. Namely, the polygons aren't all clean and round like they should be. Not an immediate problem, but I may need to fix them with some satellite-based geo-referencing before this is over.
