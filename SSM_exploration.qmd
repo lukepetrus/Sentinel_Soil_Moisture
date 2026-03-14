@@ -60,3 +60,15 @@ plot(c(ReinkeWheelLine, LittleReinkePivot, NReinkeWheelLine, WilsonPivot, NorthR
 ```
 
 Well, that didn't quite work like I'd hoped, but it did work well enough to see that there are some problems with this data. Namely, the polygons aren't all clean and round like they should be. Not an immediate problem, but I may need to fix them with some satellite-based geo-referencing before this is over.
+
+```{r}
+
+combined <- rbind(ReinkeWheelLine, LittleReinkePivot, NReinkeWheelLine, WilsonPivot, NorthReinkePivot, SouthReinkePivot, UpperPivot, ClarePivot, LittleValleyPivot, SnubPivot, TurkeyBarnPivot, BigValleyPivot, NewValleyPivot, HousePivot)
+
+FieldExt <- ext(combined)
+
+plot(combined)
+text(combined, 'Name', cex = 0.5 )
+```
+
+Okay, well, that's purdy. Got the extent I'm working with. Should be able to go back to `rstac` now and pull some sentinel-1 data.
