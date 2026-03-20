@@ -42,6 +42,7 @@ Now, I need a bounding box. To make that bounding box, I should probably pull in
 
 library(terra)
 
+# Loads in all the field data
 ReinkeWheelLine <- vect("./data/FieldData/onx-markups-03132026.kml")
 LittleReinkePivot <- vect("./data/FieldData/onx-markups-03132026(1).kml")
 NReinkeWheelLine <- vect("./data/FieldData/onx-markups-03132026(2).kml")
@@ -57,6 +58,7 @@ BigValleyPivot <- vect("./data/FieldData/onx-markups-03132026(11).kml")
 NewValleyPivot <- vect("./data/FieldData/onx-markups-03132026(12).kml")
 HousePivot <- vect("./data/FieldData/onx-markups-03132026(13).kml")
 
+# SHOW ME THE MONEY
 plot(c(ReinkeWheelLine, LittleReinkePivot, NReinkeWheelLine, WilsonPivot, NorthReinkePivot, SouthReinkePivot, UpperPivot, ClarePivot, LittleValleyPivot, SnubPivot, TurkeyBarnPivot, BigValleyPivot, NewValleyPivot, HousePivot))
 ```
 
@@ -64,10 +66,13 @@ Well, that didn't quite work like I'd hoped, but it did work well enough to see 
 
 ```{r CombineData}
 
+# Combines the fields into one spatVector
 combined <- rbind(ReinkeWheelLine, LittleReinkePivot, NReinkeWheelLine, WilsonPivot, NorthReinkePivot, SouthReinkePivot, UpperPivot, ClarePivot, LittleValleyPivot, SnubPivot, TurkeyBarnPivot, BigValleyPivot, NewValleyPivot, HousePivot)
 
+# Gets the extent of that spatVector
 FieldExt <- ext(combined)
 
+# SHOW ME THE MONEY
 plot(combined)
 text(combined, 'Name', cex = 0.5 )
 ```
@@ -76,10 +81,25 @@ Okay, well, that's purdy. Got the extent I'm working with. Should be able to go 
 
 ```{r PullRSTAC}
 
+# Structures the STAC query
 stac_query <- stac_search(
   q = stac_source,
   collection = "sentinel-1-rtc",
   bbox = FieldExt[c(1, 3, 2, 4)],
   datetime = "2025-04-01/2025-04-30"
 )
+
+# Runs the STAC query
+stac_list <- get_request(stac_query)
+
+# Signs the STAC query so Planetary Computer will let me download items
+signed_stac_query <- items_sign(
+  stac_list,
+  sign_planetary_computer()
+)
+
+# Downloads a rendered preview
+# . . . .
 ```
+
+Before we go on, it's worth taking a moment to pause and think about data structures and goals here. I want to download just the data that covers my fields, so I want to use the GDAL system described on the [STAC website](https://stacspec.org/en/tutorials/1-download-data-using-r/) tutorial for using `rstac`. We also need to do some reading about the naming conventions for sentinel data (S1A vs. S1C), and what assets we want (VH, VV). So let's do that and regroup in five.
