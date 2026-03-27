@@ -103,3 +103,7 @@ signed_stac_query <- items_sign(
 ```
 
 Before we go on, it's worth taking a moment to pause and think about data structures and goals here. I want to download just the data that covers my fields, so I want to use the GDAL system described on the [STAC website](https://stacspec.org/en/tutorials/1-download-data-using-r/) tutorial for using `rstac`. We also need to do some reading about the naming conventions for sentinel data (S1A vs. S1C), and what assets we want (VH, VV). So let's do that and regroup in five.
+
+Okay, let's have a discussion of the strengths and limits of Sentinel-based soil moisture analysis. It is definitely possible to do with a meaningful degree of accuracy, but it requires a few things. First, it requires LAI (Leaf Area Index) control points, which is most accurately determined by doing some insane vegetation cutting and measuring. That's a lot, so I am hoping that since the fields are hay fields with homogeneous grass cover we can get away with estimating LAI from remote sensing data.
+
+Second, there needs to be some input for soil moisture to make this data meaningful. This basically just means soil moisture sensors, which are relatively cheap and easy to install, particularly in hay fields that aren't being tilled every year.
