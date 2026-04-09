@@ -1,0 +1,88 @@
+---
+title: "PlanetDataNDVIStuff"
+format: html
+editor: visual
+---
+
+## Introduction
+
+I am going to try to get some NDVI from the planet data
+
+## Load the Data
+
+```{r LoadPackages}
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(terra)
+```
+
+```{r LoadData}
+
+# Loads in some planet data
+PlanetData1 <- rast("./data/PlanetData/PSScene/20240620_182805_39_2473_3B_AnalyticMS_SR_clip.tif")
+PlanetData2 <- rast("./data/PlanetData/PSScene/20240620_182807_25_2473_3B_AnalyticMS_SR_clip.tif") |> 
+  project("epsg:4326")
+
+# Scale it back down
+PlanetData2 <- PlanetData2 * 0.0001
+
+# Loads in the fields
+ReinkeWheelLine <- vect("./data/FieldData/onx-markups-03132026.kml")
+LittleReinkePivot <- vect("./data/FieldData/onx-markups-03132026(1).kml")
+NReinkeWheelLine <- vect("./data/FieldData/onx-markups-03132026(2).kml")
+WilsonPivot <- vect("./data/FieldData/onx-markups-03132026(3).kml")
+NorthReinkePivot <- vect("./data/FieldData/onx-markups-03132026(4).kml")
+SouthReinkePivot <- vect("./data/FieldData/onx-markups-03132026(5).kml")
+UpperPivot <- vect("./data/FieldData/onx-markups-03132026(6).kml")
+ClarePivot <- vect("./data/FieldData/onx-markups-03132026(7).kml")
+LittleValleyPivot <- vect("./data/FieldData/onx-markups-03132026(8).kml")
+SnubPivot <- vect("./data/FieldData/onx-markups-03132026(9).kml")
+TurkeyBarnPivot <- vect("./data/FieldData/onx-markups-03132026(10).kml")
+BigValleyPivot <- vect("./data/FieldData/onx-markups-03132026(11).kml")
+NewValleyPivot <- vect("./data/FieldData/onx-markups-03132026(12).kml")
+HousePivot <- vect("./data/FieldData/onx-markups-03132026(13).kml")
+
+# Combines the fields into one vector
+combined <- rbind(ReinkeWheelLine, LittleReinkePivot, NReinkeWheelLine, WilsonPivot, NorthReinkePivot, SouthReinkePivot, UpperPivot, ClarePivot, LittleValleyPivot, SnubPivot, TurkeyBarnPivot, BigValleyPivot, NewValleyPivot, HousePivot)
+
+# Plots the fields with their names
+plot(combined)
+text(combined, 'Name', cex = 0.5 )
+```
+
+Okay, that takes care of getting some data in. Now lets plot them in over each other.
+
+```{r Overlay}
+
+plotRGB(PlanetData2, r = 3, b = 1, g = 2, stretch = "lin")
+polys(combined, col = "tomato", lwd = 1, alpha = 0.5)
+```
+
+Now, let's do an NDVI.
+
+```{r NDVI}
+
+# Raster math
+NDVI <- (PlanetData2$nir - PlanetData2$red) / (PlanetData2$nir + PlanetData2$red)
+plot(NDVI, col = map.pal("grass", 100))
+```
+
+Now, let's clip a field out and hit it with some G\*.
+
+```{r Clip}
+
+# Clip out one field
+BigValleyNDVI <- crop(NDVI, BigValleyPivot, mask = T)
+plot(BigValleyNDVI)
+```
+
+And now G\*.
+
+```{r LocalMoran}
+
+# Run GStar
+GStar <- autocor(BigValleyNDVI, method = "moran", global = F)
+plot(GStar)
+```
