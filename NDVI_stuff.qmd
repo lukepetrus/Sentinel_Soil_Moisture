@@ -75,6 +75,22 @@ Now, let's clip a field out and hit it with some G\*.
 
 # Clip out one field
 BigValleyNDVI <- crop(NDVI, BigValleyPivot, mask = T)
+ClareNDVI <- crop(NDVI, ClarePivot, mask = T)
+HouseNDVI <- crop(NDVI, HousePivot, mask = T)
+LittleReinkeNDVI <- crop(NDVI, LittleReinkePivot, mask = T)
+LittleValleyNDVI <- crop(NDVI, LittleValleyPivot, mask = T)
+NewValleyNDVI <- crop(NDVI, NewValleyPivot, mask = T)
+NorthReinkeNDVI <- crop(NDVI, NorthReinkePivot, mask = T)
+NReinkeWheelNDVI <- crop(NDVI, NReinkeWheelLine, mask = T)
+ReinkeWheelNDVI <- crop(NDVI, ReinkeWheelLine, mask = T)
+SnubNDVI <- crop(NDVI, SnubPivot, mask = T)
+SouthReinkeNDVI <- crop(NDVI, SouthReinkePivot, mask = T)
+TurkeyBarnNDVI <- crop(NDVI, TurkeyBarnPivot, mask = T)
+UpperNDVI <- crop(NDVI, UpperPivot, mask = T)
+WilsonNDVI <- crop(NDVI, WilsonPivot, mask = T)
+
+NDVIlist <- c(BigValleyNDVI, ClareNDVI, HouseNDVI, LittleValleyNDVI, LittleReinkeNDVI, NewValleyNDVI, NorthReinkeNDVI, NReinkeWheelNDVI, ReinkeWheelNDVI, SnubNDVI, TurkeyBarnNDVI, UpperNDVI, WilsonNDVI)
+
 plot(BigValleyNDVI)
 ```
 
@@ -83,6 +99,10 @@ And now G\*.
 ```{r LocalMoran}
 
 # Run GStar
-GStar <- autocor(BigValleyNDVI, method = "moran", global = F)
+LocMoran <- autocor(BigValleyNDVI, method = "moran", global = F)
+
+# Set up a map function
+map(NDVIlist, autocor())
+
 plot(GStar)
 ```
