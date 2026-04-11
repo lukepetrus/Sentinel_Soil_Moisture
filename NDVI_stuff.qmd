@@ -69,20 +69,28 @@ plot(rastList[[3]])
 
 Great success (*Borat voice*)
 
+## Fix the Data
+
 ```{r MosaicRasters}
 
 # Now we're going to mosaic some rasters
-juneRast <- mosaic(rastList[[1]], rastList[[2]], rastList[[3]], rastList[[4]], rastList[[5]])
+juneRast <- mosaic(rastList[[1]], rastList[[2]], rastList[[3]], rastList[[4]], rastList[[5]]) |> 
+  project("epsg:4326")
 
-julyRast <- mosaic(rastList[[6]], rastList[[7]])
+julyRast <- mosaic(rastList[[6]], rastList[[7]]) |> 
+  project("epsg:4326")
 
-augRast <- mosaic(rastList[[8]], rastList[[9]], rastList[[10]], rastList[[11]])
+augRast <- mosaic(rastList[[8]], rastList[[9]], rastList[[10]], rastList[[11]]) |> 
+  project("epsg:4326")
 
-septRast <- mosaic(rastList[[12]], rastList[[13]], rastList[[14]], rastList[[15]], rastList[[16]])
+septRast <- mosaic(rastList[[12]], rastList[[13]], rastList[[14]], rastList[[15]], rastList[[16]]) |> 
+  project("epsg:4326")
 
-octRast <- mosaic(rastList[[17]], rastList[[18]], rastList[[19]], rastList[[20]], rastList[[21]])
+octRast <- mosaic(rastList[[17]], rastList[[18]], rastList[[19]], rastList[[20]], rastList[[21]]) |> 
+  project("epsg:4326")
 
-novRast <- mosaic(rastList[[22]], rastList[[23]], rastList[[24]], rastList[[25]], rastList[[26]], rastList[[27]], rastList[[28]], rastList[[29]])
+novRast <- mosaic(rastList[[22]], rastList[[23]], rastList[[24]], rastList[[25]], rastList[[26]], rastList[[27]], rastList[[28]], rastList[[29]]) |> 
+  project("epsg:4326")
 
 # And a check
 plotRGB(augRast, r = 3, b = 1, g = 2, stretch = "lin")
@@ -100,18 +108,65 @@ polys(combined, col = "tomato", lwd = 1, alpha = 0.5)
 
 Now, let's do an NDVI.
 
-```{r NDVI}
+## NDVI Stuff
+
+```{r NDVIfunc}
 
 # Raster math
 NDVI <- (PlanetData2$nir - PlanetData2$red) / (PlanetData2$nir + PlanetData2$red)
 plot(NDVI, col = map.pal("grass", 100))
+
+# Cool, it works. Now let's define it as a function
+
+NDVIfunc <- function(red, nir) {
+  (nir - red) / (nir + red)
+}
+
+# And a test
+plot(NDVIfunc(PlanetData2$red, PlanetData2$nir))
+```
+
+Sweet Baby Jesus, we're cooking with vegetation indices.
+
+Goddamnit, though. This function needs more functionality if I want to use map() again.
+
+```{r BetterNDVIfunc}
+
+# Improving the function to only take one input and separate the bands within the function
+NDVIfunc <- function(raster) {
+  red <- raster$red
+  nir <- raster$nir
+  
+  (nir - red) / (nir + red)
+}
+
+# Test
+plot(NDVIfunc(juneRast))
+```
+
+Mwahahahaha! *It is alive!*
+
+```{r Automation2}
+
+# Turn my mosiac'd rasters into a list
+MRastList <- list(juneRast, julyRast, augRast, septRast, octRast, novRast)
+
+# Run the function on each one
+NDVIlist <- map(MRastList, NDVIfunc)
+
+# Test
+plot(NDVIlist[[3]])
 ```
 
 Now, let's clip a field out and hit it with some G\*.
 
+## Clip the Fields
+
+This is the old version of the clip.
+
 ```{r Clip}
 
-# Clip out one field
+# Clip out each field
 BigValleyNDVI <- crop(NDVI, BigValleyPivot, mask = T)
 ClareNDVI <- crop(NDVI, ClarePivot, mask = T)
 HouseNDVI <- crop(NDVI, HousePivot, mask = T)
@@ -127,9 +182,19 @@ TurkeyBarnNDVI <- crop(NDVI, TurkeyBarnPivot, mask = T)
 UpperNDVI <- crop(NDVI, UpperPivot, mask = T)
 WilsonNDVI <- crop(NDVI, WilsonPivot, mask = T)
 
-NDVIlist <- c(BigValleyNDVI, ClareNDVI, HouseNDVI, LittleValleyNDVI, LittleReinkeNDVI, NewValleyNDVI, NorthReinkeNDVI, NReinkeWheelNDVI, ReinkeWheelNDVI, SnubNDVI, TurkeyBarnNDVI, UpperNDVI, WilsonNDVI)
+# make an NDVI list for June
+NDVIFieldlist <- list(BigValleyNDVI, ClareNDVI, HouseNDVI, LittleValleyNDVI, LittleReinkeNDVI, NewValleyNDVI, NorthReinkeNDVI, NReinkeWheelNDVI, ReinkeWheelNDVI, SnubNDVI, TurkeyBarnNDVI, UpperNDVI, WilsonNDVI)
 
 plot(BigValleyNDVI)
+```
+
+And now for the new and improved version.
+
+```{r NewClip}
+
+# List of fields
+fieldList <- list()
+
 ```
 
 And now G\*.
