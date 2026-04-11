@@ -69,6 +69,16 @@ plot(rastList[[3]])
 
 Great success (*Borat voice*)
 
+Now, I am actually returning from the future (*Clip the Fields* section) to do up the fields in the same way I did the rasters. Let's have some fun.
+
+```{r FieldList}
+
+# list field files
+fieldFileList <- list.files(path = "./data/FieldData/", full.names = T)
+
+vectList <- map(fieldFileList, vect)
+```
+
 ## Fix the Data
 
 ```{r MosaicRasters}
@@ -156,6 +166,15 @@ NDVIlist <- map(MRastList, NDVIfunc)
 
 # Test
 plot(NDVIlist[[3]])
+
+# I discovered that the CRS is weird
+crs(NDVIlist[[1]])
+
+# Reproject
+NDVIlist <- map(NDVIlist, ~project(.x, y = "epsg:4326"))
+
+# Test
+crs(NDVIlist[[1]])
 ```
 
 Now, let's clip a field out and hit it with some G\*.
@@ -192,20 +211,29 @@ And now for the new and improved version.
 
 ```{r NewClip}
 
-# List of fields
-fieldList <- list()
+# Create a crop function to use in another map function
+crop_func <- function(ndvi) {
+  map(vectList, ~crop(ndvi, .x, mask = T))
+}
 
+# 84 rasters in 1 line
+cropByMonth <- map(NDVIlist, crop_func)
+
+# Test
+plot(cropByMonth[[1]][[1]])
 ```
 
-And now G\*.
+And now local Moran.
+
+## Spatial Autocorrelation
 
 ```{r LocalMoran}
 
-# Run GStar
+# Run local Moran
 LocMoran <- autocor(BigValleyNDVI, method = "moran", global = F)
 
-# Set up a map function
-map(NDVIlist, autocor())
-
+# Test
 plot(GStar)
 ```
+
+Cool,
