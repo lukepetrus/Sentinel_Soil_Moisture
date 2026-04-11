@@ -16,6 +16,7 @@ I am going to try to get some NDVI from the planet data
 
 library(tidyverse)
 library(terra)
+library(purrr)
 ```
 
 ```{r LoadData}
@@ -51,6 +52,43 @@ combined <- rbind(ReinkeWheelLine, LittleReinkePivot, NReinkeWheelLine, WilsonPi
 plot(combined)
 text(combined, 'Name', cex = 0.5 )
 ```
+
+That's all well and good, but let's see if I can auto-load all the files I want.
+
+```{r Automation}
+
+# List the files in the chosen directory that contain the regex I am looking for
+fileList <- list.files(path = "./data/PlanetData/PSScene/", pattern = "SR", full.names = T)
+
+#That is a list of files. Now to generate rasters from them
+rastList <- map(fileList, rast)
+
+# Now let's check one
+plot(rastList[[3]])
+```
+
+Great success (*Borat voice*)
+
+```{r MosaicRasters}
+
+# Now we're going to mosaic some rasters
+juneRast <- mosaic(rastList[[1]], rastList[[2]], rastList[[3]], rastList[[4]], rastList[[5]])
+
+julyRast <- mosaic(rastList[[6]], rastList[[7]])
+
+augRast <- mosaic(rastList[[8]], rastList[[9]], rastList[[10]], rastList[[11]])
+
+septRast <- mosaic(rastList[[12]], rastList[[13]], rastList[[14]], rastList[[15]], rastList[[16]])
+
+octRast <- mosaic(rastList[[17]], rastList[[18]], rastList[[19]], rastList[[20]], rastList[[21]])
+
+novRast <- mosaic(rastList[[22]], rastList[[23]], rastList[[24]], rastList[[25]], rastList[[26]], rastList[[27]], rastList[[28]], rastList[[29]])
+
+# And a check
+plotRGB(augRast, r = 3, b = 1, g = 2, stretch = "lin")
+```
+
+Gorgeous. It works. I now have half the year's rasters.
 
 Okay, that takes care of getting some data in. Now lets plot them in over each other.
 
