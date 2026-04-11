@@ -220,7 +220,7 @@ crop_func <- function(ndvi) {
 cropByMonth <- map(NDVIlist, crop_func)
 
 # Test
-plot(cropByMonth[[1]][[1]])
+plot(cropByMonth[[2]][[7]])
 ```
 
 And now local Moran.
@@ -236,4 +236,13 @@ LocMoran <- autocor(BigValleyNDVI, method = "moran", global = F)
 plot(GStar)
 ```
 
-Cool,
+Cool, now lets see about automating it
+
+```{r AutoMoran}
+
+# map, baby, map
+moranList <- map(cropByMonth, ~map(.x, ~autocor(.x, method = "moran", global = F)))
+
+# test
+plot(moranList[[2]][[7]])
+```
