@@ -22,8 +22,8 @@ library(purrr)
 ```{r LoadData}
 
 # Loads in some planet data
-PlanetData1 <- rast("./data/PlanetData/PSScene/20240620_182805_39_2473_3B_AnalyticMS_SR_clip.tif")
-PlanetData2 <- rast("./data/PlanetData/PSScene/20240620_182807_25_2473_3B_AnalyticMS_SR_clip.tif") |> 
+PlanetData1 <- rast("./data/PlanetData/part1/PSScene/20240620_182805_39_2473_3B_AnalyticMS_SR_clip.tif")
+PlanetData2 <- rast("./data/PlanetData/part1/PSScene/20240620_182807_25_2473_3B_AnalyticMS_SR_clip.tif") |> 
   project("epsg:4326")
 
 # Scale it back down
@@ -58,7 +58,7 @@ That's all well and good, but let's see if I can auto-load all the files I want.
 ```{r Automation}
 
 # List the files in the chosen directory that contain the regex I am looking for
-fileList <- list.files(path = "./data/PlanetData/PSScene/", pattern = "SR", full.names = T)
+fileList <- list.files(path = "./data/PlanetData/part1/PSScene/", pattern = "SR", full.names = T)
 
 #That is a list of files. Now to generate rasters from them
 rastList <- map(fileList, rast)
