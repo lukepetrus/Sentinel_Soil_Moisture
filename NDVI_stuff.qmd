@@ -104,7 +104,14 @@ plotRGB(mosaicRasters[[1]], r = 3, b = 1, g = 2, stretch = "lin")
 # list field files
 fieldFileList <- list.files(path = "./data/FieldData/", full.names = T)
 
+# Turn them into spatVectors
 vectList <- map(fieldFileList, vect)
+
+# Extract field names
+fieldNames <- map_chr(vectList, ~.x[]$Name)
+
+# Assigns the fields their names
+vectList <- setNames(vectList, fieldNames)
 ```
 
 ## Fix the Data
@@ -213,16 +220,18 @@ MRastList <- list(janRast, febRast, marchRast, aprilRast, mayRast, juneRast, jul
 NDVIlist <- map(mosaicRasters, NDVIfunc)
 
 # Test
-plot(NDVIlist[[3]])
+plot(NDVIlist[[6]])
+
+#The CRS is no longer weird and this is now irrelevant
 
 # I discovered that the CRS is weird
-crs(NDVIlist[[1]])
+#crs(NDVIlist[[1]])
 
 # Reproject
-NDVIlist <- map(NDVIlist, ~project(.x, y = "epsg:4326"))
+#NDVIlist <- map(NDVIlist, ~project(.x, y = "epsg:4326"))
 
 # Test
-crs(NDVIlist[[1]])
+#crs(NDVIlist[[1]])
 ```
 
 Now, let's clip a field out and hit it with some G\*.
@@ -260,15 +269,15 @@ And now for the new and improved version.
 ```{r NewClip}
 
 # Create a crop function to use in another map function
-crop_func <- function(ndvi) {
+cropFunc <- function(ndvi) {
   map(vectList, ~crop(ndvi, .x, mask = T))
 }
 
-# 84 rasters in 1 line
-cropByMonth <- map(NDVIlist, crop_func)
+# 168 rasters in 1 line
+cropByMonth <- map(NDVIlist, cropFunc)
 
 # Test
-plot(cropByMonth[[2]][[7]])
+plot(cropByMonth[[2]][[3]], main = names(cropByMonth[[2]])[[3]])
 ```
 
 And now local Moran.
@@ -297,10 +306,27 @@ plot(moranList[[2]][[7]])
 
 ## Visualization
 
-Now I am going to try some stuff for visualizing all these fields
+Now I am going to try some stuff for visualizing all these fields. It sounds like to plot it with geom_raster I need to convert each one to a data frame that contains x, y, and the value at that location. Let's try.
 
-```{r Visualization}
+```{r 3DVisualization}
+library(rayshader)
 
-ggplot() +
-  geom_raster()
+# Turn months into a data frames
+dfJanBigVal <- as.data.frame(cropByMonth[[2]][[3]], xy = T)
+dfJulyBigVal <- as.data.frame(cropByMonth[[7]][[3]], xy = T)
+
+
+# Plot it
+graph1 <- ggplot(dfJulyBigVal) +
+  geom_raster(aes(x = x, y = y, fill = nir)) +
+  scale_fill_gradient(low = "tomato", high = "springgreen", limits = c(0, 1))
+
+# Render it in 3d
+plot_gg(graph1, height_aes = "fill")
+```
+
+Okay, so we've proven that we can render it in 3D, but can we animate a visual that contains all 7 maps?
+
+```{r AnimatedVisualization}
+
 ```
