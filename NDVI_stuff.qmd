@@ -89,7 +89,8 @@ nestedRasters <- map(nestedFiles$data, ~map(.x$fileName, rast))
 
 # Mosaic the rasters
 mosaicRasters <- map(nestedRasters, ~mosaic(sprc(.x))) |> 
-  map(~project(.x, "epsg:4326"))
+  map(~project(.x, "epsg:4326")) |> 
+  setNames(nestedFiles$date)
 
 # Test
 plotRGB(mosaicRasters[[1]], r = 3, b = 1, g = 2, stretch = "lin")
@@ -217,7 +218,11 @@ MRastList <- list(janRast, febRast, marchRast, aprilRast, mayRast, juneRast, jul
 #This list above is all well and good, but I am going to change the below workflow to use the mosaicRasters list i generated in the Automation2 chunk
 
 # Run the function on each one
-NDVIlist <- map(mosaicRasters, NDVIfunc)
+NDVIlist <- map(mosaicRasters, NDVIfunc) |> 
+  map(\(x) {
+    names(x) <- "NDVI"
+    x
+  })
 
 # Test
 plot(NDVIlist[[6]])
@@ -328,5 +333,27 @@ plot_gg(graph1, height_aes = "fill")
 Okay, so we've proven that we can render it in 3D, but can we animate a visual that contains all 7 maps?
 
 ```{r AnimatedVisualization}
+library(gganimate)
 
+rasterBlaster <- function(monthList, date) {
+  imap(monthList, \(raster, field) {
+       as.data.frame(raster, xy = T) |> 
+         mutate(
+           date = date,
+           field = field
+         )
+       })
+}
+
+dfFull <- imap(cropByMonth, rasterBlaster) |> 
+  map(~list_rbind(.x)) |> 
+  list_rbind()
+
+
+dfFull |> 
+  filter(date == "20240716") |> 
+  ggplot(aes(x = x, y = y, fill = NDVI)) +
+    geom_tile() +
+    scale_fill_gradient(low = "tomato", high = "springgreen", limits = c(0, 1)) +
+    facet_wrap(~field)
 ```
