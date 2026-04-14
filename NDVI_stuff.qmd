@@ -334,6 +334,7 @@ Okay, so we've proven that we can render it in 3D, but can we animate a visual t
 
 ```{r AnimatedVisualization}
 library(gganimate)
+library(ggh4x)
 
 rasterBlaster <- function(monthList, date) {
   imap(monthList, \(raster, field) {
@@ -355,13 +356,34 @@ dfFull <- dfFull |>
     date = ymd(date)
   )
 
+# Might need if things don't work
+fakeData <- tribble(
+  ~x, ~y, ~NDVI,        ~date, ~field,
+  1,   1,    1, ymd("2024-01-31"),      "z",
+  1,   1,    1, ymd("2024-02-23"),      "z",
+  1,   1,    1, ymd("2024-03-16"),      "z",
+  1,   1,    1, ymd("2024-04-05"),      "z",
+  1,   1,    1, ymd("2024-05-27"),      "z",
+  1,   1,    1, ymd("2024-06-20"),      "z",
+  NA,   NA,    NA, ymd("2024-07-16"),      "z",
+  1,   1,    1, ymd("2024-08-30"),      "z",
+  1,   1,    1, ymd("2024-09-27"),      "z",
+  1,   1,    1, ymd("2024-10-26"),      "z",
+  1,   1,    1, ymd("2024-11-09"),      "z",
+  1,   1,    1, ymd("2024-12-05"),      "z"
+)
+
+design <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, NA, 13, 14, NA), 
+                 4, 4, byrow = T)
+
 dfFull |> 
-  filter(date == date("2024-07-16")) |> 
+  mutate(field = factor(field)) |>
+  filter(date == "2024-04-05") |> 
   ggplot(aes(x = x, y = y, fill = NDVI)) +
     geom_tile() +
-    scale_fill_gradient(low = "firebrick", high = "mediumspringgreen", 
+    scale_fill_gradient(low = "wheat1", high = "darkgreen", 
                         limits = c(0, 1)) +
-    facet_wrap(~field, scales = "free") +
+    facet_manual(~field, design = design, scales = "free") +
     labs(
       title = "AMB West NDVI",
       subtitle = "Date: {frame_time}",
@@ -370,9 +392,13 @@ dfFull |>
     ) +
     theme_bw() +
     theme(axis.text = element_blank(),
-          plot.title = element_text(face = "bold", hjust = 0.5),
-          plot.subtitle = element_text(hjust = 0.5))# +
-  #  transition_time(date)
+          plot.title = element_text(face = "bold", hjust = 0.5, color = "black"),
+          plot.subtitle = element_text(hjust = 0.5, color = "black"),
+          plot.background = element_rect(fill = "white"),
+          legend.background = element_rect(fill = "white"),
+          legend.text = element_text(color = "black"),
+          legend.title = element_text(color = "black"))# +
+#  transition_time(date)
 
 ggsave(filename = "prelimPlotJuly.png")
 ```
