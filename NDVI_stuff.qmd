@@ -350,10 +350,25 @@ dfFull <- imap(cropByMonth, rasterBlaster) |>
   list_rbind()
 
 
+dfFull <- dfFull |> 
+    mutate(
+    date = ymd(date)
+  )
+
 dfFull |> 
-  filter(date == "20240716") |> 
+  filter(date == date("2024-07-16")) |> 
   ggplot(aes(x = x, y = y, fill = NDVI)) +
     geom_tile() +
-    scale_fill_gradient(low = "tomato", high = "springgreen", limits = c(0, 1)) +
-    facet_wrap(~field)
+    scale_fill_gradient(low = "firebrick", high = "mediumspringgreen", 
+                        limits = c(0, 1)) +
+    facet_wrap(~field, scales = "free") +
+    labs(
+      title = "AMB West NDVI",
+      subtitle = "Date: {frame_time}"
+    ) +
+    theme_bw() +
+    theme(axis.text = element_blank(),
+          plot.title = element_text(face = "bold", hjust = 0.5),
+          plot.subtitle = element_text(hjust = 0.5))# +
+  #  transition_time(date)
 ```
