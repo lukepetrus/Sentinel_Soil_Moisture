@@ -364,11 +364,15 @@ dfFull |>
     facet_wrap(~field, scales = "free") +
     labs(
       title = "AMB West NDVI",
-      subtitle = "Date: {frame_time}"
+      subtitle = "Date: {frame_time}",
+      x = "",
+      y = ""
     ) +
     theme_bw() +
     theme(axis.text = element_blank(),
           plot.title = element_text(face = "bold", hjust = 0.5),
           plot.subtitle = element_text(hjust = 0.5))# +
   #  transition_time(date)
+
+ggsave(filename = "prelimPlotJuly.png")
 ```
