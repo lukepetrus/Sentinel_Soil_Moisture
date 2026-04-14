@@ -55,7 +55,7 @@ text(combined, 'Name', cex = 0.5 )
 
 That's all well and good, but let's see if I can auto-load all the files I want.
 
-```{r Automation}
+```{r Automation1}
 
 # List the files in the chosen directory that contain the regex I am looking for
 fileList <- list.files(path = "./data/PlanetData/part1/PSScene/", pattern = "SR", full.names = T)
@@ -64,12 +64,40 @@ fileList <- list.files(path = "./data/PlanetData/part1/PSScene/", pattern = "SR"
 rastList <- map(fileList, rast)
 
 # Now let's check one
-plot(rastList[[3]])
+plot(rastList[[1]])
 ```
 
 Great success (*Borat voice*)
 
-Now, I am actually returning from the future (*Clip the Fields* section) to do up the fields in the same way I did the rasters. Let's have some fun.
+```{r Automation2}
+
+# Make a raster with 48 rows
+rastTibble <- tibble(.rows = 48)
+
+# populate the rows with files and extract dates
+nestedFiles <- rastTibble |> 
+  mutate(fileName = fileList,
+         date = str_extract(fileName, "[:digit:]{8}")) |> 
+  group_by(date) |> 
+  nest()
+
+# selects january, then selects the fileName column
+nestedFiles$data[[1]]$fileName
+
+# Turn them all into rasters
+nestedRasters <- map(nestedFiles$data, ~map(.x$fileName, rast))
+
+# Mosaic the rasters
+mosaicRasters <- map(nestedRasters, ~mosaic(sprc(.x))) |> 
+  map(~project(.x, "epsg:4326"))
+
+# Test
+plotRGB(mosaicRasters[[1]], r = 3, b = 1, g = 2, stretch = "lin")
+
+
+```
+
+11Now, I am actually returning from the future (*Clip the Fields* section) to do up the fields in the same way I did the rasters. Let's have some fun.
 
 ```{r FieldList}
 
@@ -84,29 +112,47 @@ vectList <- map(fieldFileList, vect)
 ```{r MosaicRasters}
 
 # Now we're going to mosaic some rasters
-juneRast <- mosaic(rastList[[1]], rastList[[2]], rastList[[3]], rastList[[4]], rastList[[5]]) |> 
+janRast <- mosaic(rastList[[1]], rastList[[2]]) |> 
   project("epsg:4326")
 
-julyRast <- mosaic(rastList[[6]], rastList[[7]]) |> 
+febRast <- mosaic(rastList[[3]], rastList[[4]], rastList[[5]], rastList[[6]], rastList[[7]]) |> 
   project("epsg:4326")
 
-augRast <- mosaic(rastList[[8]], rastList[[9]], rastList[[10]], rastList[[11]]) |> 
+marchRast <- mosaic(rastList[[8]], rastList[[9]], rastList[[10]]) |> 
   project("epsg:4326")
 
-septRast <- mosaic(rastList[[12]], rastList[[13]], rastList[[14]], rastList[[15]], rastList[[16]]) |> 
+aprilRast <- mosaic(rastList[[11]], rastList[[12]], rastList[[13]]) |> 
   project("epsg:4326")
 
-octRast <- mosaic(rastList[[17]], rastList[[18]], rastList[[19]], rastList[[20]], rastList[[21]]) |> 
+mayRast <- mosaic(rastList[[14]], rastList[[15]], rastList[[16]]) |> 
   project("epsg:4326")
 
-novRast <- mosaic(rastList[[22]], rastList[[23]], rastList[[24]], rastList[[25]], rastList[[26]], rastList[[27]], rastList[[28]], rastList[[29]]) |> 
+juneRast <- mosaic(rastList[[17]], rastList[[18]], rastList[[19]], rastList[[20]], rastList[[21]]) |> 
+  project("epsg:4326")
+
+julyRast <- mosaic(rastList[[22]], rastList[[23]]) |> 
+  project("epsg:4326")
+
+augRast <- mosaic(rastList[[24]], rastList[[25]], rastList[[26]], rastList[[27]]) |> 
+  project("epsg:4326")
+
+septRast <- mosaic(rastList[[28]], rastList[[29]], rastList[[30]], rastList[[31]], rastList[[32]]) |> 
+  project("epsg:4326")
+
+octRast <- mosaic(rastList[[33]], rastList[[34]], rastList[[35]], rastList[[36]], rastList[[37]]) |> 
+  project("epsg:4326")
+
+novRast <- mosaic(rastList[[38]], rastList[[39]], rastList[[40]], rastList[[41]], rastList[[42]], rastList[[43]], rastList[[44]], rastList[[45]]) |> 
+  project("epsg:4326")
+
+decRast <- mosaic(rastList[[46]], rastList[[47]], rastList[[48]]) |> 
   project("epsg:4326")
 
 # And a check
-plotRGB(augRast, r = 3, b = 1, g = 2, stretch = "lin")
+plotRGB(juneRast, r = 3, b = 1, g = 2, stretch = "lin")
 ```
 
-Gorgeous. It works. I now have half the year's rasters.
+Gorgeous. It works. I now have the rasters.
 
 Okay, that takes care of getting some data in. Now lets plot them in over each other.
 
@@ -159,10 +205,12 @@ Mwahahahaha! *It is alive!*
 ```{r Automation2}
 
 # Turn my mosiac'd rasters into a list
-MRastList <- list(juneRast, julyRast, augRast, septRast, octRast, novRast)
+MRastList <- list(janRast, febRast, marchRast, aprilRast, mayRast, juneRast, julyRast, augRast, septRast, octRast, novRast, decRast)
+
+#This list above is all well and good, but I am going to change the below workflow to use the mosaicRasters list i generated in the Automation2 chunk
 
 # Run the function on each one
-NDVIlist <- map(MRastList, NDVIfunc)
+NDVIlist <- map(mosaicRasters, NDVIfunc)
 
 # Test
 plot(NDVIlist[[3]])
@@ -245,4 +293,14 @@ moranList <- map(cropByMonth, ~map(.x, ~autocor(.x, method = "moran", global = F
 
 # test
 plot(moranList[[2]][[7]])
+```
+
+## Visualization
+
+Now I am going to try some stuff for visualizing all these fields
+
+```{r Visualization}
+
+ggplot() +
+  geom_raster()
 ```
