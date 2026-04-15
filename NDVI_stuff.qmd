@@ -20,6 +20,7 @@ library(purrr)
 ```
 
 ```{r LoadData}
+#| eval: false
 
 # Loads in some planet data
 PlanetData1 <- rast("./data/PlanetData/part1/PSScene/20240620_182805_39_2473_3B_AnalyticMS_SR_clip.tif")
@@ -56,6 +57,7 @@ text(combined, 'Name', cex = 0.5 )
 That's all well and good, but let's see if I can auto-load all the files I want.
 
 ```{r Automation1}
+#| eval: true
 
 # List the files in the chosen directory that contain the regex I am looking for
 fileList <- list.files(path = "./data/PlanetData/part1/PSScene/", pattern = "SR", full.names = T)
@@ -70,6 +72,7 @@ plot(rastList[[1]])
 Great success (*Borat voice*)
 
 ```{r Automation2}
+#| eval: true
 
 # Make a raster with 48 rows
 rastTibble <- tibble(.rows = 48)
@@ -94,13 +97,12 @@ mosaicRasters <- map(nestedRasters, ~mosaic(sprc(.x))) |>
 
 # Test
 plotRGB(mosaicRasters[[1]], r = 3, b = 1, g = 2, stretch = "lin")
-
-
 ```
 
-11Now, I am actually returning from the future (*Clip the Fields* section) to do up the fields in the same way I did the rasters. Let's have some fun.
+Now, I am actually returning from the future (*Clip the Fields* section) to do up the fields in the same way I did the rasters. Let's have some fun.
 
 ```{r FieldList}
+#| eval: true
 
 # list field files
 fieldFileList <- list.files(path = "./data/FieldData/", full.names = T)
@@ -118,6 +120,7 @@ vectList <- setNames(vectList, fieldNames)
 ## Fix the Data
 
 ```{r MosaicRasters}
+#| eval: false
 
 # Now we're going to mosaic some rasters
 janRast <- mosaic(rastList[[1]], rastList[[2]]) |> 
@@ -165,6 +168,7 @@ Gorgeous. It works. I now have the rasters.
 Okay, that takes care of getting some data in. Now lets plot them in over each other.
 
 ```{r Overlay}
+#| eval: false
 
 plotRGB(PlanetData2, r = 3, b = 1, g = 2, stretch = "lin")
 polys(combined, col = "tomato", lwd = 1, alpha = 0.5)
@@ -175,6 +179,7 @@ Now, let's do an NDVI.
 ## NDVI Stuff
 
 ```{r NDVIfunc}
+#| eval: false
 
 # Raster math
 NDVI <- (PlanetData2$nir - PlanetData2$red) / (PlanetData2$nir + PlanetData2$red)
@@ -195,6 +200,7 @@ Sweet Baby Jesus, we're cooking with vegetation indices.
 Goddamnit, though. This function needs more functionality if I want to use map() again.
 
 ```{r BetterNDVIfunc}
+#| eval: true
 
 # Improving the function to only take one input and separate the bands within the function
 NDVIfunc <- function(raster) {
@@ -205,15 +211,16 @@ NDVIfunc <- function(raster) {
 }
 
 # Test
-plot(NDVIfunc(juneRast))
+#plot(NDVIfunc(juneRast))
 ```
 
 Mwahahahaha! *It is alive!*
 
 ```{r Automation2}
+#| eval: true
 
-# Turn my mosiac'd rasters into a list
-MRastList <- list(janRast, febRast, marchRast, aprilRast, mayRast, juneRast, julyRast, augRast, septRast, octRast, novRast, decRast)
+# Turn my mosiac'd rasters into a list (don't need anymore)
+#MRastList <- list(janRast, febRast, marchRast, aprilRast, mayRast, juneRast, julyRast, augRast, septRast, octRast, novRast, decRast)
 
 #This list above is all well and good, but I am going to change the below workflow to use the mosaicRasters list i generated in the Automation2 chunk
 
@@ -246,6 +253,7 @@ Now, let's clip a field out and hit it with some G\*.
 This is the old version of the clip.
 
 ```{r Clip}
+#| eval: false
 
 # Clip out each field
 BigValleyNDVI <- crop(NDVI, BigValleyPivot, mask = T)
@@ -272,6 +280,7 @@ plot(BigValleyNDVI)
 And now for the new and improved version.
 
 ```{r NewClip}
+#| eval: true
 
 # Create a crop function to use in another map function
 cropFunc <- function(ndvi) {
@@ -290,6 +299,7 @@ And now local Moran.
 ## Spatial Autocorrelation
 
 ```{r LocalMoran}
+#| eval: false
 
 # Run local Moran
 LocMoran <- autocor(BigValleyNDVI, method = "moran", global = F)
@@ -301,6 +311,7 @@ plot(GStar)
 Cool, now lets see about automating it
 
 ```{r AutoMoran}
+#| eval: true
 
 # map, baby, map
 moranList <- map(cropByMonth, ~map(.x, ~autocor(.x, method = "moran", global = F)))
@@ -314,6 +325,8 @@ plot(moranList[[2]][[7]])
 Now I am going to try some stuff for visualizing all these fields. It sounds like to plot it with geom_raster I need to convert each one to a data frame that contains x, y, and the value at that location. Let's try.
 
 ```{r 3DVisualization}
+#| eval: true
+
 library(rayshader)
 
 # Turn months into a data frames
@@ -333,9 +346,12 @@ plot_gg(graph1, height_aes = "fill")
 Okay, so we've proven that we can render it in 3D, but can we animate a visual that contains all 7 maps?
 
 ```{r AnimatedVisualization}
+#| eval: true
+
 library(gganimate)
 library(ggh4x)
 
+# A function that turns each raster into its own dataframe with values that are inhereted from the list index
 rasterBlaster <- function(monthList, date) {
   imap(monthList, \(raster, field) {
        as.data.frame(raster, xy = T) |> 
@@ -346,59 +362,94 @@ rasterBlaster <- function(monthList, date) {
        })
 }
 
+# Runs rasterBlaster(), binds the data frames within the months together by row, then binds the combined dataframes for each month together by row to make a master dataframe with a row for every pixel in every field for every month
 dfFull <- imap(cropByMonth, rasterBlaster) |> 
   map(~list_rbind(.x)) |> 
   list_rbind()
 
-
+# Turn the date into a datetime object
 dfFull <- dfFull |> 
     mutate(
-    date = ymd(date)
+    date = ymd(date),
+    field = factor(field)
   )
 
-# Might need if things don't work
-fakeData <- tribble(
-  ~x, ~y, ~NDVI,        ~date, ~field,
-  1,   1,    1, ymd("2024-01-31"),      "z",
-  1,   1,    1, ymd("2024-02-23"),      "z",
-  1,   1,    1, ymd("2024-03-16"),      "z",
-  1,   1,    1, ymd("2024-04-05"),      "z",
-  1,   1,    1, ymd("2024-05-27"),      "z",
-  1,   1,    1, ymd("2024-06-20"),      "z",
-  NA,   NA,    NA, ymd("2024-07-16"),      "z",
-  1,   1,    1, ymd("2024-08-30"),      "z",
-  1,   1,    1, ymd("2024-09-27"),      "z",
-  1,   1,    1, ymd("2024-10-26"),      "z",
-  1,   1,    1, ymd("2024-11-09"),      "z",
-  1,   1,    1, ymd("2024-12-05"),      "z"
-)
-
+# Set the layout design for the facet_manual()
 design <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, NA, 13, 14, NA), 
                  4, 4, byrow = T)
 
-dfFull |> 
-  mutate(field = factor(field)) |>
-  filter(date == "2024-04-05") |> 
-  ggplot(aes(x = x, y = y, fill = NDVI)) +
-    geom_tile() +
-    scale_fill_gradient(low = "wheat1", high = "darkgreen", 
-                        limits = c(0, 1)) +
-    facet_manual(~field, design = design, scales = "free") +
-    labs(
-      title = "AMB West NDVI",
-      subtitle = "Date: {frame_time}",
-      x = "",
-      y = ""
+# Create the ggplot base for the animation
+animPlot <- ggplot(dfFull, aes(x = x, y = y, fill = NDVI)) +
+  geom_tile() +
+  scale_fill_gradient(low = "wheat1", high = "darkgreen", 
+                      limits = c(0, 1)) +
+  facet_manual(~field, design = design, scales = "free") +
+  labs(
+    title = "AMB West NDVI",
+    subtitle = "Date: {frame_time}",
+    x = "",
+    y = ""
     ) +
-    theme_bw() +
-    theme(axis.text = element_blank(),
-          plot.title = element_text(face = "bold", hjust = 0.5, color = "black"),
-          plot.subtitle = element_text(hjust = 0.5, color = "black"),
-          plot.background = element_rect(fill = "white"),
-          legend.background = element_rect(fill = "white"),
-          legend.text = element_text(color = "black"),
-          legend.title = element_text(color = "black"))# +
-#  transition_time(date)
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5, color = "black"),
+        plot.subtitle = element_text(hjust = 0.5, color = "black"),
+        plot.background = element_rect(fill = "white"),
+        legend.background = element_rect(fill = "white"),
+        legend.text = element_text(color = "black"),
+        legend.title = element_text(color = "black")) +
+  transition_time(date)
 
-ggsave(filename = "prelimPlotJuly.png")
+# Render the animation  
+animate(animPlot)
+
+# Save the animation
+anim_save("fieldNDVI.gif")
 ```
+
+And it works!!! I have exactly the animated graphic I was envisioning. Only took like 15 hours of coding aha. Now, I have to decide if I want to do the same for local Moran's I. Fudge it, why not?
+
+```{r AnimatedMorans}
+#| eval: true
+
+# Change NDVI to Moran's Local I
+moranList <- map(moranList, ~map(.x, \(x) {
+  names(x) <- "Local Moran's I"
+  x
+}))
+
+# Create the unified data frame for the Moran's rasters
+dfFullMoran <- imap(moranList, rasterBlaster) |> 
+  map(~list_rbind(.x)) |> 
+  list_rbind()
+
+# Change field to a factor
+dfFullMoran <- dfFullMoran |> 
+  mutate(field = factor(field),
+         date = ymd(date))
+
+# Create the gganim object in the same fashion as the other one, but with a different gradient
+dfFullMoran |> 
+  filter(date == "2024-10-26") |> 
+ggplot(aes(x = x, y = y, fill = `Local Moran's I`)) +
+  geom_tile() +
+  scale_fill_gradient(low = "darkslateblue", high = "goldenrod1") +
+  facet_manual(~field, design = design, scales = "free") +
+  labs(
+    title = "AMB West NDVI",
+    subtitle = "Date: {frame_time}",
+    x = "",
+    y = ""
+    ) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5, color = "black"),
+        plot.subtitle = element_text(hjust = 0.5, color = "black"),
+        plot.background = element_rect(fill = "white"),
+        legend.background = element_rect(fill = "white"),
+        legend.text = element_text(color = "black"),
+        legend.title = element_text(color = "black"))# +
+#  transition_time(date)
+```
+
+Not going to lie, the exploratory data analysis I am doing on Moran's I makes me think this animation isn't really worth making. I don't think it will show anything that can't be more clearly seen on the NDVI animation.
