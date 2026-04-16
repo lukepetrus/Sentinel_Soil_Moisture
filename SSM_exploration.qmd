@@ -86,7 +86,7 @@ stac_query <- stac_search(
   q = stac_source,
   collection = "sentinel-1-rtc",
   bbox = FieldExt[c(1, 3, 2, 4)],
-  datetime = "2025-04-01/2025-04-30"
+  datetime = "2025-04-01/2025-04-05"
 )
 
 # Runs the STAC query
@@ -99,7 +99,8 @@ signed_stac_query <- items_sign(
 )
 
 # Downloads a rendered preview
-# . . . .
+assets_download(signed_stac_query, c("vh", "vv"), 
+                output_dir = "./data/RadarData/", overwrite = T)
 ```
 
 Before we go on, it's worth taking a moment to pause and think about data structures and goals here. I want to download just the data that covers my fields, so I want to use the GDAL system described on the [STAC website](https://stacspec.org/en/tutorials/1-download-data-using-r/) tutorial for using `rstac`. We also need to do some reading about the naming conventions for sentinel data (S1A vs. S1C), and what assets we want (VH, VV). So let's do that and regroup in five.
@@ -107,3 +108,11 @@ Before we go on, it's worth taking a moment to pause and think about data struct
 Okay, let's have a discussion of the strengths and limits of Sentinel-based soil moisture analysis. It is definitely possible to do with a meaningful degree of accuracy, but it requires a few things. First, it requires LAI (Leaf Area Index) control points, which is most accurately determined by doing some insane vegetation cutting and measuring. That's a lot, so I am hoping that since the fields are hay fields with homogeneous grass cover we can get away with estimating LAI from remote sensing data.
 
 Second, there needs to be some input for soil moisture to make this data meaningful. This basically just means soil moisture sensors, which are relatively cheap and easy to install, particularly in hay fields that aren't being tilled every year.
+
+Scratch all that. Soil moisture may not be possible. Let's just play with the radar data.
+
+```{r RadExp}
+
+radRast <- rast("./data/RadarData/sentinel1-grd-rtc/GRD/2025/4/1/IW/DV/S1C_IW_GRDH_1SDV_20250401T011917_20250401T011942_001693_002D8A_88A4/measurement/iw-vh.rtc.tiff")
+plotRGB(radRast, r = 1, g = 2, b = 3)
+```
