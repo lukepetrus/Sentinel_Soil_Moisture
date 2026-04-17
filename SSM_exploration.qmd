@@ -109,10 +109,26 @@ Okay, let's have a discussion of the strengths and limits of Sentinel-based soil
 
 Second, there needs to be some input for soil moisture to make this data meaningful. This basically just means soil moisture sensors, which are relatively cheap and easy to install, particularly in hay fields that aren't being tilled every year.
 
+#### (Sound of Brakes Screeching to a Halt)
+
 Scratch all that. Soil moisture may not be possible. Let's just play with the radar data.
 
 ```{r RadExp}
 
-radRast <- rast("./data/RadarData/sentinel1-grd-rtc/GRD/2025/4/1/IW/DV/S1C_IW_GRDH_1SDV_20250401T011917_20250401T011942_001693_002D8A_88A4/measurement/iw-vh.rtc.tiff")
-plotRGB(radRast, r = 1, g = 2, b = 3)
+radRast <- rast("./data/RadarData/sentinel1-grd-rtc/GRD/2025/4/1/IW/DV/S1C_IW_GRDH_1SDV_20250401T011917_20250401T011942_001693_002D8A_88A4/measurement/iw-vh.rtc.tiff") |> 
+  project("epsg:4326")
+
+plot(radRast)
+polys(combined)
+
+radRastCrop <- crop(radRast, combined)
+
+plot(radRastCrop, col = map.pal("haxby"))
+polys(combined)
+
+bigValleyCrop <- crop(radRastCrop, BigValleyPivot, mask = T)
+plot(bigValleyCrop)
+
+snubCrop <- crop(radRastCrop, SnubPivot, mask = T)
+plot(snubCrop)
 ```
