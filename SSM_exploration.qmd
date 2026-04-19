@@ -115,20 +115,108 @@ Scratch all that. Soil moisture may not be possible. Let's just play with the ra
 
 ```{r RadExp}
 
-radRast <- rast("./data/RadarData/sentinel1-grd-rtc/GRD/2025/4/1/IW/DV/S1C_IW_GRDH_1SDV_20250401T011917_20250401T011942_001693_002D8A_88A4/measurement/iw-vh.rtc.tiff") |> 
+# Load in the VH raster
+radRastVH <- rast("./data/RadarData/sentinel1-grd-rtc/GRD/2025/4/1/IW/DV/S1C_IW_GRDH_1SDV_20250401T011917_20250401T011942_001693_002D8A_88A4/measurement/iw-vh.rtc.tiff") |> 
   project("epsg:4326")
 
-plot(radRast)
+# Load in the VV raster
+radRastVV <- rast("./data/RadarData/sentinel1-grd-rtc/GRD/2025/4/1/IW/DV/S1C_IW_GRDH_1SDV_20250401T011917_20250401T011942_001693_002D8A_88A4/measurement/iw-vv.rtc.tiff") |> 
+  project("epsg:4326")
+
+# Plot the raster with the fields
+plot(radRastVH)
 polys(combined)
 
-radRastCrop <- crop(radRast, combined)
+# Cropping the rasters to the fields
+radRastVHcrop <- crop(radRastVH, combined)
+radRastVVcrop <- crop(radRastVV, combined)
 
-plot(radRastCrop, col = map.pal("haxby"))
+# Looking at the cropped raster
+plot(radRastVHcrop, col = map.pal("haxby"))
 polys(combined)
 
-bigValleyCrop <- crop(radRastCrop, BigValleyPivot, mask = T)
+# Looking at the Big Valley pivot
+bigValleyCrop <- crop(radRastVVcrop, BigValleyPivot, mask = T)
 plot(bigValleyCrop)
 
-snubCrop <- crop(radRastCrop, SnubPivot, mask = T)
+#Looking at the Snub pivot
+snubCrop <- crop(radRastVVcrop, SnubPivot, mask = T)
 plot(snubCrop)
+
+# Looking at all the pivots
+combinedCrop <- crop(radRastVV, combined, mask = T)
+plot(combinedCrop)
 ```
+
+Okay, i confirmed with landsat data that the difference we can see in the Big Valley pivot is indeed because the irrigation system is running on one side, but not the other. I know this because the soil is darker on the irrigated side. I want to do a time series here, but I will need to improve the STAC query because the files I downloaded with the other query were far too large. I want to only download the portion that overlaps with a bounding box drawn around my fields.
+
+```{r ImprovedSTAC}
+
+# Sets up a stac query to pull all of April 2024
+improvedSTACquery <- stac(
+  "https://planetarycomputer.microsoft.com/api/stac/v1"
+) |>
+  stac_search(
+    collections = "sentinel-1-rtc",
+    bbox = FieldExt[c(1, 3, 2, 4)],
+    datetime = "2024-01-01/2024-12-31"
+  ) |>
+  get_request()
+
+# A function that sets up the GDAL request
+make_vsicurl_url <- function(base_url) {
+  paste0(
+    "/vsicurl", 
+    "?pc_url_signing=yes",
+    "&pc_collection=sentinel-1-rtc",
+    "&url=",
+    base_url
+  )
+}
+
+# Makes the URLs, identifies the relative orbit, drops the ones I don't want, then removes the NAs from the vector
+sentinel_urls <- ifelse(
+  relOrbit(as.integer(str_extract(
+    make_vsicurl_url(assets_url(improvedSTACquery, "vv")),
+    "(?<=_)[:digit:]{6}(?=_)"))) == 100,
+  make_vsicurl_url(assets_url(improvedSTACquery, "vv")),
+  NA) |> 
+  stats::na.omit()
+  
+
+
+# Downloads just the bit of data I want. Much faster.
+map(sentinel_urls, ~sf::gdal_utils(
+  "warp",
+  source = .x,
+  destination = paste0("C:/Users/Luke/OneDrive/Documents/School/Spring_2026/GPHY_484/Project/Sentinel_Soil_Moisture/data/RadarData/TimeSeriesApril/", 
+                       str_extract(.x, "[:digit:]{8}"), ".tif"),
+  options = c(
+    "-t_srs", crs(combined),
+    "-te", FieldExt[c(1, 3, 2, 4)]
+  )
+))
+
+
+```
+
+```{r Test}
+
+radRastApr10 <- rast("./data/RadarData/TimeSeriesApril/20240410.tif")
+
+crop(radRastApr10, combined, mask = T) |> 
+  plot()
+```
+
+```{r RelativeOrbit}
+
+# Defines a function that computes relative orbit from absolute orbit based on the formula given by the ESA
+relOrbit <- function(absOrbit) {
+  ((absOrbit - 73) %% 175) + 1
+}
+
+# Checks the relative orbits of my sentinel urls to make sure they're all the ones I want
+map(sentinel_urls, ~relOrbit(as.integer(str_extract(.x, "(?<=_)[:digit:]{6}(?=_)"))))
+```
+
+Well, now that I have the data, I can tell that I can for sure see the fields in the data, and I think I can see some correlation with irrigation on the April Big Valley Pivot images, because at that time the LAI is basically zero but based on some visual inspections of concurrent landsat imagery, I can say that they had already begun irrigation. Therefore, the only thing that is different between the two halves of the Big Valley Pivot is that one half is wet and the other half is dry. So we might be back! Even if translating this into some actual number may be challenging, I do believe that this convinces me that radar is still worthwhile to pursue.
