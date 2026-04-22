@@ -220,3 +220,130 @@ map(sentinel_urls, ~relOrbit(as.integer(str_extract(.x, "(?<=_)[:digit:]{6}(?=_)
 ```
 
 Well, now that I have the data, I can tell that I can for sure see the fields in the data, and I think I can see some correlation with irrigation on the April Big Valley Pivot images, because at that time the LAI is basically zero but based on some visual inspections of concurrent landsat imagery, I can say that they had already begun irrigation. Therefore, the only thing that is different between the two halves of the Big Valley Pivot is that one half is wet and the other half is dry. So we might be back! Even if translating this into some actual number may be challenging, I do believe that this convinces me that radar is still worthwhile to pursue.
+
+Now I need to pull all these files in as rasters, put them in a list, and all that jazz.
+
+```{r LoadingRasters}
+
+# Pulls the file paths
+fileList <- list.files("./data/RadarData/TimeSeriesApril/", full.names = T)
+
+# Pulls names out of the files for later
+namesList <- str_extract(fileList, pattern = "[:digit:]{8}")
+
+# Generates the raster list
+rastList <- map(fileList, ~rast(.x))
+
+# Names each element
+rastList <- setNames(rastList, namesList)
+
+# Test
+plot(rastList[[1]])
+```
+
+Okay, the rasters are loaded in and set up as named elements in a list. The projection is correct, and the rasters appear to be showing up properly. Now I need to crop out each field for each raster, which should give me 392 individual rasters. To do that, I will need a list of fields as well, then I should be able to do this with nested map() functions.
+
+```{r Cropping}
+
+# list field files
+fieldFileList <- list.files(path = "./data/FieldData/", full.names = T)
+
+# Turn them into spatVectors
+vectList <- map(fieldFileList, vect)
+
+# Extract field names
+fieldNames <- map_chr(vectList, ~.x[]$Name)
+
+# Assigns the fields their names
+vectList <- setNames(vectList, fieldNames)
+
+# Writing a crop function
+cropFunc <- function(raster) {
+  map(vectList, ~crop(raster, .x, mask = T))
+}
+
+# Doing the crop
+croppedFields <- map(rastList, ~cropFunc(.x))
+
+# Test
+plot(croppedFields[[13]][[3]])
+```
+
+Cool. I'd say that works. I will also say, I don't have a good explanation for why there is a split in the Big Valley Pivot's radar backscatter in January and February. That will take further explanation and would probably be aided by some optical spectrum images of the field at that time. Anyways, lets build the ggplot2 animation and see what that looks like.
+
+```{r asDataframe}
+library(ggh4x)
+library(gganimate)
+
+# Function to convert raster to a data frame with columns for month and field.
+dfFunc <- function(rasterlist, date) {
+  imap(rasterlist, \(x, field) {
+    as.data.frame(x, xy = T) |> 
+      mutate(
+        date = date,
+        field = field
+      )
+  })
+}
+
+# Create the list of data frames
+bigData <- imap(croppedFields, dfFunc) |> 
+  map(~list_rbind(.x)) |> 
+  list_rbind() |> 
+  mutate(
+    date = ymd(date)
+  ) |> 
+  rename(
+    value = `Sentinel-1 Calibrated and Terrain Corrected VV`
+  )
+
+# Set the design
+design <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, NA, 13, 14, NA), 
+                 4, 4, byrow = T)
+
+# Test the plot
+bigData |> 
+  filter(date == "2024-07-15") |> 
+  ggplot() +
+    geom_tile(aes(x = x, y = y, fill = value)) +
+    scale_fill_viridis_c(option = "A") +
+    facet_manual(~field, design = design, scales = "free") +
+    labs(
+      title = "AMB West Radar Backscatter",
+      subtitle = "Date: {frame_time}",
+      x = "",
+      y = "",
+      caption = "From Sentinel-1 VV 30m data, 01/24-12/24\nBy Luke Petrus."
+    ) +
+    theme_bw() +
+    theme(axis.text = element_blank(),
+          plot.title = element_text(face = "bold", hjust = 0.5, color = "black"),
+          plot.subtitle = element_text(hjust = 0.5, color = "black"),
+          plot.background = element_rect(fill = "white"),
+          legend.background = element_rect(fill = "white"),
+          legend.text = element_text(color = "black"),
+          legend.title = element_text(color = "black"),
+          plot.caption = element_text(hjust = 0)
+    )
+
+# Now for the animation
+animPlot <-   ggplot() +
+  geom_tile(aes(x = x, y = y, fill = value)) +
+  facet_manual(~field, design = design, scales = "free") +
+  labs(
+    title = "AMB West Radar Backscatter",
+    subtitle = "Date: {frame_time}",
+    x = "",
+    y = ""
+  ) +
+  theme_bw() +
+  theme(axis.text = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5, color = "black"),
+        plot.subtitle = element_text(hjust = 0.5, color = "black"),
+        plot.background = element_rect(fill = "white"),
+        legend.background = element_rect(fill = "white"),
+        legend.text = element_text(color = "black"),
+        legend.title = element_text(color = "black")
+  ) +
+  transition_time(date)
+```
