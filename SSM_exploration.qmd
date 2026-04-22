@@ -272,8 +272,6 @@ plot(croppedFields[[13]][[3]])
 Cool. I'd say that works. I will also say, I don't have a good explanation for why there is a split in the Big Valley Pivot's radar backscatter in January and February. That will take further explanation and would probably be aided by some optical spectrum images of the field at that time. Anyways, lets build the ggplot2 animation and see what that looks like.
 
 ```{r asDataframe}
-library(ggh4x)
-library(gganimate)
 
 # Function to convert raster to a data frame with columns for month and field.
 dfFunc <- function(rasterlist, date) {
@@ -294,8 +292,15 @@ bigData <- imap(croppedFields, dfFunc) |>
     date = ymd(date)
   ) |> 
   rename(
-    value = `Sentinel-1 Calibrated and Terrain Corrected VV`
+    Value = `Sentinel-1 Calibrated and Terrain Corrected VV`
   )
+```
+
+Now to create the plot.
+
+```{r Visualize}
+library(ggh4x)
+library(gganimate)
 
 # Set the design
 design <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, NA, 13, 14, NA), 
@@ -303,17 +308,18 @@ design <- matrix(c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, NA, 13, 14, NA),
 
 # Test the plot
 bigData |> 
-  filter(date == "2024-07-15") |> 
+  filter(date == "2024-10-07") |> 
   ggplot() +
-    geom_tile(aes(x = x, y = y, fill = value)) +
-    scale_fill_viridis_c(option = "A") +
+    geom_tile(aes(x = x, y = y, fill = Value)) +
+    scale_fill_viridis_c(limits = c(0, 0.5)) +
     facet_manual(~field, design = design, scales = "free") +
     labs(
       title = "AMB West Radar Backscatter",
       subtitle = "Date: {frame_time}",
       x = "",
       y = "",
-      caption = "From Sentinel-1 VV 30m data, 01/24-12/24\nBy Luke Petrus."
+      caption = "From Sentinel-1 VV 30m data w/ 12 day revisit, 01/17/24-12/30/24
+By Luke Petrus."
     ) +
     theme_bw() +
     theme(axis.text = element_blank(),
@@ -327,14 +333,17 @@ bigData |>
     )
 
 # Now for the animation
-animPlot <-   ggplot() +
-  geom_tile(aes(x = x, y = y, fill = value)) +
+animPlot <-   ggplot(bigData) +
+  geom_tile(aes(x = x, y = y, fill = Value)) +
+  scale_fill_viridis_c(limits = c(0, 0.5)) +
   facet_manual(~field, design = design, scales = "free") +
   labs(
     title = "AMB West Radar Backscatter",
     subtitle = "Date: {frame_time}",
     x = "",
-    y = ""
+    y = "",
+    caption = "From Sentinel-1 VV 30m data w/ 12 day revisit, 01/17/24-12/30/24
+By Luke Petrus"
   ) +
   theme_bw() +
   theme(axis.text = element_blank(),
@@ -343,7 +352,14 @@ animPlot <-   ggplot() +
         plot.background = element_rect(fill = "white"),
         legend.background = element_rect(fill = "white"),
         legend.text = element_text(color = "black"),
-        legend.title = element_text(color = "black")
+        legend.title = element_text(color = "black"),
+        plot.caption = element_text(hjust = 0)
   ) +
   transition_time(date)
+
+# Render it
+animate(animPlot)
+
+# Save it
+anim_save("fieldBackscatter.gif")
 ```
