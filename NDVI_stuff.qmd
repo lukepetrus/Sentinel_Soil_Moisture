@@ -463,12 +463,51 @@ Anyways, now I need to export these NDVI rasters. I will write a quick function 
 # Export function
 exportFunc <- function(monthList, date) {
   imap(monthList, \(x, field){
-    fname <- str_remove_all(paste0("./data/FinalData/NDVI/", 
+    fname <- str_replace_all(paste0("./data/FinalData/NDVI/", 
                                      as.character(date), 
-                                     field, ".tif"), "\\s|-")
+                                     field, ".tif"), "\\s|-", "_")
     writeRaster(x, filename = fname)
   })
 }
 
 imap(cropByMonth, exportFunc)
 ```
+
+Beautiful.
+
+However, Now I'm feeling like maybe I should do an RGB crop too. Let's run it
+
+```{r RGBCrop}
+
+# Do the crop using cropFunc and mosaicRasters
+cropByMonthRGB <- map(mosaicRasters, cropFunc)
+
+# Alter exportFunc to send them to the right spot
+exportFunc <- function(monthList, date) {
+  imap(monthList, \(x, field){
+    fname <- str_replace_all(paste0("./data/FinalData/RGBNir/", 
+                                     as.character(date), 
+                                     field, ".tif"), "\\s|-", "_")
+    writeRaster(x, filename = fname)
+  })
+}
+
+# Export 'em
+imap(cropByMonthRGB, exportFunc)
+```
+
+And on that topic, let's see if there is a way to make my animation but do it with RGB rasters.
+
+## What if. . . RGB
+
+Okay, a quick Claude query suggested tidyterra which extends ggplot2's functionality with geom_spatraster_rgb() (and a bunch of other stuff). I am wondering if I am going to be able to facet in the same way and thinking probably not, but let's give it a try and see what happens. Otherwise, I will have to compute a hex color for every pixel and do the long dataframe thing again, which is doable but annoying.
+
+```{r Exploration}
+library(tidyterra)
+
+# A basic plot
+ggplot() +
+  geom_spatraster_rgb(data = cropByMonthRGB[[6]][[3]], r = 3, b = 1, g = 2, stretch = "lin")
+```
+
+On second thought, this might not be worth it. I am not going to be able to facet by field with tidyterra, and even if I could I am not sure how gganimate would handle the transitions between values that are non-numeric. If I did the long data frame method with hex colors that still doesn't solve the transition problem for gganimate. I think this might be the limit of what I can do here.
