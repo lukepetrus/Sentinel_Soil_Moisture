@@ -388,7 +388,9 @@ animPlot <- ggplot(dfFull, aes(x = x, y = y, fill = NDVI)) +
     title = "AMB West NDVI",
     subtitle = "Date: {frame_time}",
     x = "",
-    y = ""
+    y = "",
+    caption = "From Planet 3m data at a roughly 1 month revisit, 01/31/24-12/05/24
+By Luke Petrus"
     ) +
   theme_bw() +
   theme(axis.text = element_blank(),
@@ -397,7 +399,8 @@ animPlot <- ggplot(dfFull, aes(x = x, y = y, fill = NDVI)) +
         plot.background = element_rect(fill = "white"),
         legend.background = element_rect(fill = "white"),
         legend.text = element_text(color = "black"),
-        legend.title = element_text(color = "black")) +
+        legend.title = element_text(color = "black"),
+        plot.caption = element_text(hjust = 0)) +
   transition_time(date)
 
 # Render the animation  
