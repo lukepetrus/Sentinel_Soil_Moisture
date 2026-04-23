@@ -153,7 +153,7 @@ combinedCrop <- crop(radRastVV, combined, mask = T)
 plot(combinedCrop)
 ```
 
-Okay, i confirmed with landsat data that the difference we can see in the Big Valley pivot is indeed because the irrigation system is running on one side, but not the other. I know this because the soil is darker on the irrigated side. I want to do a time series here, but I will need to improve the STAC query because the files I downloaded with the other query were far too large. I want to only download the portion that overlaps with a bounding box drawn around my fields.
+Okay, I confirmed with landsat data that the difference we can see in the Big Valley pivot is indeed because the irrigation system is running on one side, but not the other. I know this because the soil is darker on the irrigated side. I want to do a time series here, but I will need to improve the STAC query because the files I downloaded with the other query were far too large. I want to only download the portion that overlaps with a bounding box drawn around my fields.
 
 ```{r ImprovedSTAC}
 #| eval: false
