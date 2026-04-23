@@ -165,7 +165,7 @@ combinedCrop <- crop(radRastVV, combined, mask = T)
 plot(combinedCrop)
 ```
 
-Okay, i confirmed with landsat data that the difference we can see in
+Okay, I confirmed with landsat data that the difference we can see in
 the Big Valley pivot is indeed because the irrigation system is running
 on one side, but not the other. I know this because the soil is darker
 on the irrigated side. I want to do a time series here, but I will need
@@ -300,6 +300,17 @@ croppedFields <- map(rastList, ~cropFunc(.x))
 plot(croppedFields[[13]][[3]])
 ```
 
+And we’re going to do another crop that only creates 28 rasters, cropped
+to the combined fields.
+
+``` r
+# Crops to field
+combinedCrop <- map(rastList, ~crop(.x, combined, mask = T))
+
+# Test
+plot(combinedCrop[[1]])
+```
+
 Cool. I’d say that works. I will also say, I don’t have a good
 explanation for why there is a split in the Big Valley Pivot’s radar
 backscatter in January and February. That will take further explanation
@@ -419,3 +430,9 @@ imap(croppedFields, exportFunc)
 
 That worked. Now I have 392 uniquely named rasters. My team is going to
 love this lol.
+
+We are going to add another cell to export the combined rasters.
+
+``` r
+imap(combinedCrop, ~writeRaster(.x, filename = paste0("./data/FinalData/RadarCombined/", as.character(.y), ".tif")))
+```
