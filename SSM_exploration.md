@@ -1,18 +1,12 @@
----
-title: "Sentinel_Soil_Moisture"
-format: markdown_github
-editor: visual
----
+# Sentinel_Soil_Moisture
+
 
 ## Sourcing Data
 
-Based on my preliminary readings, it seems like the package `rstac` is going to be my best source for pre-processed and analysis-ready data.
+Based on my preliminary readings, it seems like the package `rstac` is
+going to be my best source for pre-processed and analysis-ready data.
 
-```{r IntroToRSTAC}
-#| message: false
-#| warning: false
-#| eval: false
-
+``` r
 library(rstac)
 
 # Sets the STAC to Microsoft's Planetary Computer
@@ -35,13 +29,14 @@ readable_list <- tibble(
 )
 ```
 
-Now, I need a bounding box. To make that bounding box, I should probably pull in the onX point data of the fields and use the extent of that to create the bounding box for my rstac data query. Then, I will need to convert the points to lines and polygons in order to use the field polygons to clip the sentinel data to just the fields that I want to look at.
+Now, I need a bounding box. To make that bounding box, I should probably
+pull in the onX point data of the fields and use the extent of that to
+create the bounding box for my rstac data query. Then, I will need to
+convert the points to lines and polygons in order to use the field
+polygons to clip the sentinel data to just the fields that I want to
+look at.
 
-```{r LoadData}
-#| message: false
-#| warning: false
-#| eval: false
-
+``` r
 library(terra)
 
 # Loads in all the field data
@@ -64,11 +59,13 @@ HousePivot <- vect("./data/FieldData/onx-markups-03132026(13).kml")
 plot(c(ReinkeWheelLine, LittleReinkePivot, NReinkeWheelLine, WilsonPivot, NorthReinkePivot, SouthReinkePivot, UpperPivot, ClarePivot, LittleValleyPivot, SnubPivot, TurkeyBarnPivot, BigValleyPivot, NewValleyPivot, HousePivot))
 ```
 
-Well, that didn't quite work like I'd hoped, but it did work well enough to see that there are some problems with this data. Namely, the polygons aren't all clean and round like they should be. Not an immediate problem, but I may need to fix them with some satellite-based geo-referencing before this is over.
+Well, that didn’t quite work like I’d hoped, but it did work well enough
+to see that there are some problems with this data. Namely, the polygons
+aren’t all clean and round like they should be. Not an immediate
+problem, but I may need to fix them with some satellite-based
+geo-referencing before this is over.
 
-```{r CombineData}
-#| eval: false
-
+``` r
 # Combines the fields into one spatVector
 combined <- rbind(ReinkeWheelLine, LittleReinkePivot, NReinkeWheelLine, WilsonPivot, NorthReinkePivot, SouthReinkePivot, UpperPivot, ClarePivot, LittleValleyPivot, SnubPivot, TurkeyBarnPivot, BigValleyPivot, NewValleyPivot, HousePivot)
 
@@ -80,11 +77,10 @@ plot(combined)
 text(combined, 'Name', cex = 0.5 )
 ```
 
-Okay, well, that's purdy. Got the extent I'm working with. Should be able to go back to `rstac` now and pull some sentinel-1 data.
+Okay, well, that’s purdy. Got the extent I’m working with. Should be
+able to go back to `rstac` now and pull some sentinel-1 data.
 
-```{r PullRSTAC}
-#| eval: false
-
+``` r
 # Structures the STAC query
 stac_query <- stac_search(
   q = stac_source,
@@ -107,19 +103,35 @@ assets_download(signed_stac_query, c("vh", "vv"),
                 output_dir = "./data/RadarData/", overwrite = T)
 ```
 
-Before we go on, it's worth taking a moment to pause and think about data structures and goals here. I want to download just the data that covers my fields, so I want to use the GDAL system described on the [STAC website](https://stacspec.org/en/tutorials/1-download-data-using-r/) tutorial for using `rstac`. We also need to do some reading about the naming conventions for sentinel data (S1A vs. S1C), and what assets we want (VH, VV). So let's do that and regroup in five.
+Before we go on, it’s worth taking a moment to pause and think about
+data structures and goals here. I want to download just the data that
+covers my fields, so I want to use the GDAL system described on the
+[STAC
+website](https://stacspec.org/en/tutorials/1-download-data-using-r/)
+tutorial for using `rstac`. We also need to do some reading about the
+naming conventions for sentinel data (S1A vs. S1C), and what assets we
+want (VH, VV). So let’s do that and regroup in five.
 
-Okay, let's have a discussion of the strengths and limits of Sentinel-based soil moisture analysis. It is definitely possible to do with a meaningful degree of accuracy, but it requires a few things. First, it requires LAI (Leaf Area Index) control points, which is most accurately determined by doing some insane vegetation cutting and measuring. That's a lot, so I am hoping that since the fields are hay fields with homogeneous grass cover we can get away with estimating LAI from remote sensing data.
+Okay, let’s have a discussion of the strengths and limits of
+Sentinel-based soil moisture analysis. It is definitely possible to do
+with a meaningful degree of accuracy, but it requires a few things.
+First, it requires LAI (Leaf Area Index) control points, which is most
+accurately determined by doing some insane vegetation cutting and
+measuring. That’s a lot, so I am hoping that since the fields are hay
+fields with homogeneous grass cover we can get away with estimating LAI
+from remote sensing data.
 
-Second, there needs to be some input for soil moisture to make this data meaningful. This basically just means soil moisture sensors, which are relatively cheap and easy to install, particularly in hay fields that aren't being tilled every year.
+Second, there needs to be some input for soil moisture to make this data
+meaningful. This basically just means soil moisture sensors, which are
+relatively cheap and easy to install, particularly in hay fields that
+aren’t being tilled every year.
 
 #### (Sound of Brakes Screeching to a Halt)
 
-Scratch all that. Soil moisture may not be possible. Let's just play with the radar data.
+Scratch all that. Soil moisture may not be possible. Let’s just play
+with the radar data.
 
-```{r RadExp}
-#| eval: false
-
+``` r
 # Load in the VH raster
 radRastVH <- rast("./data/RadarData/sentinel1-grd-rtc/GRD/2025/4/1/IW/DV/S1C_IW_GRDH_1SDV_20250401T011917_20250401T011942_001693_002D8A_88A4/measurement/iw-vh.rtc.tiff") |> 
   project("epsg:4326")
@@ -153,11 +165,15 @@ combinedCrop <- crop(radRastVV, combined, mask = T)
 plot(combinedCrop)
 ```
 
-Okay, i confirmed with landsat data that the difference we can see in the Big Valley pivot is indeed because the irrigation system is running on one side, but not the other. I know this because the soil is darker on the irrigated side. I want to do a time series here, but I will need to improve the STAC query because the files I downloaded with the other query were far too large. I want to only download the portion that overlaps with a bounding box drawn around my fields.
+Okay, i confirmed with landsat data that the difference we can see in
+the Big Valley pivot is indeed because the irrigation system is running
+on one side, but not the other. I know this because the soil is darker
+on the irrigated side. I want to do a time series here, but I will need
+to improve the STAC query because the files I downloaded with the other
+query were far too large. I want to only download the portion that
+overlaps with a bounding box drawn around my fields.
 
-```{r ImprovedSTAC}
-#| eval: false
-
+``` r
 # Sets up a stac query to pull all of April 2024
 improvedSTACquery <- stac(
   "https://planetarycomputer.microsoft.com/api/stac/v1"
@@ -202,22 +218,16 @@ map(sentinel_urls, ~sf::gdal_utils(
     "-te", FieldExt[c(1, 3, 2, 4)]
   )
 ))
-
-
 ```
 
-```{r Test}
-#| eval: false
-
+``` r
 radRastApr10 <- rast("./data/RadarData/TimeSeriesApril/20240410.tif")
 
 crop(radRastApr10, combined, mask = T) |> 
   plot()
 ```
 
-```{r RelativeOrbit}
-#| eval: false
-
+``` r
 # Defines a function that computes relative orbit from absolute orbit based on the formula given by the ESA
 relOrbit <- function(absOrbit) {
   ((absOrbit - 73) %% 175) + 1
@@ -227,13 +237,21 @@ relOrbit <- function(absOrbit) {
 map(sentinel_urls, ~relOrbit(as.integer(str_extract(.x, "(?<=_)[:digit:]{6}(?=_)"))))
 ```
 
-Well, now that I have the data, I can tell that I can for sure see the fields in the data, and I think I can see some correlation with irrigation on the April Big Valley Pivot images, because at that time the LAI is basically zero but based on some visual inspections of concurrent landsat imagery, I can say that they had already begun irrigation. Therefore, the only thing that is different between the two halves of the Big Valley Pivot is that one half is wet and the other half is dry. So we might be back! Even if translating this into some actual number may be challenging, I do believe that this convinces me that radar is still worthwhile to pursue.
+Well, now that I have the data, I can tell that I can for sure see the
+fields in the data, and I think I can see some correlation with
+irrigation on the April Big Valley Pivot images, because at that time
+the LAI is basically zero but based on some visual inspections of
+concurrent landsat imagery, I can say that they had already begun
+irrigation. Therefore, the only thing that is different between the two
+halves of the Big Valley Pivot is that one half is wet and the other
+half is dry. So we might be back! Even if translating this into some
+actual number may be challenging, I do believe that this convinces me
+that radar is still worthwhile to pursue.
 
-Now I need to pull all these files in as rasters, put them in a list, and all that jazz.
+Now I need to pull all these files in as rasters, put them in a list,
+and all that jazz.
 
-```{r LoadingRasters}
-#| eval: false
-
+``` r
 # Pulls the file paths
 fileList <- list.files("./data/RadarData/TimeSeriesApril/", full.names = T)
 
@@ -250,11 +268,14 @@ rastList <- setNames(rastList, namesList)
 plot(rastList[[1]])
 ```
 
-Okay, the rasters are loaded in and set up as named elements in a list. The projection is correct, and the rasters appear to be showing up properly. Now I need to crop out each field for each raster, which should give me 392 individual rasters. To do that, I will need a list of fields as well, then I should be able to do this with nested map() functions.
+Okay, the rasters are loaded in and set up as named elements in a list.
+The projection is correct, and the rasters appear to be showing up
+properly. Now I need to crop out each field for each raster, which
+should give me 392 individual rasters. To do that, I will need a list of
+fields as well, then I should be able to do this with nested map()
+functions.
 
-```{r Cropping}
-#| eval: false
-
+``` r
 # list field files
 fieldFileList <- list.files(path = "./data/FieldData/", full.names = T)
 
@@ -279,11 +300,14 @@ croppedFields <- map(rastList, ~cropFunc(.x))
 plot(croppedFields[[13]][[3]])
 ```
 
-Cool. I'd say that works. I will also say, I don't have a good explanation for why there is a split in the Big Valley Pivot's radar backscatter in January and February. That will take further explanation and would probably be aided by some optical spectrum images of the field at that time. Anyways, lets build the ggplot2 animation and see what that looks like.
+Cool. I’d say that works. I will also say, I don’t have a good
+explanation for why there is a split in the Big Valley Pivot’s radar
+backscatter in January and February. That will take further explanation
+and would probably be aided by some optical spectrum images of the field
+at that time. Anyways, lets build the ggplot2 animation and see what
+that looks like.
 
-```{r asDataframe}
-#| eval: false
-
+``` r
 # Function to convert raster to a data frame with columns for month and field.
 dfFunc <- function(rasterlist, date) {
   imap(rasterlist, \(x, field) {
@@ -309,9 +333,7 @@ bigData <- imap(croppedFields, dfFunc) |>
 
 Now to create the plot.
 
-```{r Visualize}
-#| eval: false
-
+``` r
 library(ggh4x)
 library(gganimate)
 
@@ -377,11 +399,10 @@ animate(animPlot)
 anim_save("fieldBackscatter.gif")
 ```
 
-Now I need to export all these fields as tiff files to include in the data package.
+Now I need to export all these fields as tiff files to include in the
+data package.
 
-```{r Export}
-#| eval: false
-
+``` r
 # A function to name and export these files
 exportFunc <- function(monthList, date) {
   imap(monthList, \(x, field){
@@ -396,4 +417,5 @@ exportFunc <- function(monthList, date) {
 imap(croppedFields, exportFunc)
 ```
 
-That worked. Now I have 392 uniquely named rasters. My team is going to love this lol.
+That worked. Now I have 392 uniquely named rasters. My team is going to
+love this lol.
