@@ -363,3 +363,23 @@ animate(animPlot)
 # Save it
 anim_save("fieldBackscatter.gif")
 ```
+
+Now I need to export all these fields as tiff files to include in the data package.
+
+```{r Export}
+
+# A function to name and export these files
+exportFunc <- function(monthList, date) {
+  imap(monthList, \(x, field){
+    fname <- str_remove_all(paste0("./data/FinalData/Radar/", 
+                                     as.character(date), 
+                                     field, ".tif"), "\\s|-")
+    writeRaster(x, filename = fname)
+  })
+}
+
+# Do the thing
+imap(croppedFields, exportFunc)
+```
+
+That worked. Now I have 392 uniquely named rasters. My team is going to love this lol.

@@ -453,3 +453,22 @@ ggplot(aes(x = x, y = y, fill = `Local Moran's I`)) +
 ```
 
 Not going to lie, the exploratory data analysis I am doing on Moran's I makes me think this animation isn't really worth making. I don't think it will show anything that can't be more clearly seen on the NDVI animation.
+
+## Export
+
+Anyways, now I need to export these NDVI rasters. I will write a quick function to do that for me.
+
+```{r Export}
+
+# Export function
+exportFunc <- function(monthList, date) {
+  imap(monthList, \(x, field){
+    fname <- str_remove_all(paste0("./data/FinalData/NDVI/", 
+                                     as.character(date), 
+                                     field, ".tif"), "\\s|-")
+    writeRaster(x, filename = fname)
+  })
+}
+
+imap(cropByMonth, exportFunc)
+```
