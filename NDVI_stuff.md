@@ -1,8 +1,5 @@
----
-title: "PlanetDataNDVIStuff"
-format: markdown_github
-editor: visual
----
+# PlanetDataNDVIStuff
+
 
 ## Introduction
 
@@ -12,19 +9,13 @@ I am going to try to get some NDVI from the planet data
 
 ## Load the Data
 
-```{r LoadPackages}
-#| message: false
-#| warning: false
-#| eval: false
-
+``` r
 library(tidyverse)
 library(terra)
 library(purrr)
 ```
 
-```{r LoadData}
-#| eval: false
-
+``` r
 # Loads in some planet data
 PlanetData1 <- rast("./data/PlanetData/part1/PSScene/20240620_182805_39_2473_3B_AnalyticMS_SR_clip.tif")
 PlanetData2 <- rast("./data/PlanetData/part1/PSScene/20240620_182807_25_2473_3B_AnalyticMS_SR_clip.tif") |> 
@@ -57,11 +48,10 @@ plot(combined)
 text(combined, 'Name', cex = 0.5 )
 ```
 
-That's all well and good, but let's see if I can auto-load all the files I want.
+That’s all well and good, but let’s see if I can auto-load all the files
+I want.
 
-```{r Automation1}
-#| eval: false
-
+``` r
 # List the files in the chosen directory that contain the regex I am looking for
 fileList <- list.files(path = "./data/PlanetData/part1/PSScene/", pattern = "SR", full.names = T)
 
@@ -74,9 +64,7 @@ plot(rastList[[1]])
 
 Great success (*Borat voice*)
 
-```{r Automation2}
-#| eval: false
-
+``` r
 # Make a raster with 48 rows
 rastTibble <- tibble(.rows = 48)
 
@@ -102,11 +90,11 @@ mosaicRasters <- map(nestedRasters, ~mosaic(sprc(.x))) |>
 plotRGB(mosaicRasters[[1]], r = 3, b = 1, g = 2, stretch = "lin")
 ```
 
-Now, I am actually returning from the future (*Clip the Fields* section) to do up the fields in the same way I did the rasters. Let's have some fun.
+Now, I am actually returning from the future (*Clip the Fields* section)
+to do up the fields in the same way I did the rasters. Let’s have some
+fun.
 
-```{r FieldList}
-#| eval: false
-
+``` r
 # list field files
 fieldFileList <- list.files(path = "./data/FieldData/", full.names = T)
 
@@ -122,9 +110,7 @@ vectList <- setNames(vectList, fieldNames)
 
 ## Fix the Data
 
-```{r MosaicRasters}
-#| eval: false
-
+``` r
 # Now we're going to mosaic some rasters
 janRast <- mosaic(rastList[[1]], rastList[[2]]) |> 
   project("epsg:4326")
@@ -168,22 +154,19 @@ plotRGB(juneRast, r = 3, b = 1, g = 2, stretch = "lin")
 
 Gorgeous. It works. I now have the rasters.
 
-Okay, that takes care of getting some data in. Now lets plot them in over each other.
+Okay, that takes care of getting some data in. Now lets plot them in
+over each other.
 
-```{r Overlay}
-#| eval: false
-
+``` r
 plotRGB(PlanetData2, r = 3, b = 1, g = 2, stretch = "lin")
 polys(combined, col = "tomato", lwd = 1, alpha = 0.5)
 ```
 
-Now, let's do an NDVI.
+Now, let’s do an NDVI.
 
 ## NDVI Stuff
 
-```{r NDVIfunc}
-#| eval: false
-
+``` r
 # Raster math
 NDVI <- (PlanetData2$nir - PlanetData2$red) / (PlanetData2$nir + PlanetData2$red)
 plot(NDVI, col = map.pal("grass", 100))
@@ -198,13 +181,12 @@ NDVIfunc <- function(red, nir) {
 plot(NDVIfunc(PlanetData2$red, PlanetData2$nir))
 ```
 
-Sweet Baby Jesus, we're cooking with vegetation indices.
+Sweet Baby Jesus, we’re cooking with vegetation indices.
 
-Goddamnit, though. This function needs more functionality if I want to use map() again.
+Goddamnit, though. This function needs more functionality if I want to
+use map() again.
 
-```{r BetterNDVIfunc}
-#| eval: false
-
+``` r
 # Improving the function to only take one input and separate the bands within the function
 NDVIfunc <- function(raster) {
   red <- raster$red
@@ -219,9 +201,7 @@ NDVIfunc <- function(raster) {
 
 Mwahahahaha! *It is alive!*
 
-```{r Automation3}
-#| eval: false
-
+``` r
 # Turn my mosiac'd rasters into a list (don't need anymore)
 #MRastList <- list(janRast, febRast, marchRast, aprilRast, mayRast, juneRast, julyRast, augRast, septRast, octRast, novRast, decRast)
 
@@ -249,15 +229,13 @@ plot(NDVIlist[[6]])
 #crs(NDVIlist[[1]])
 ```
 
-Now, let's clip a field out and hit it with some G\*.
+Now, let’s clip a field out and hit it with some G\*.
 
 ## Clip the Fields
 
 This is the old version of the clip.
 
-```{r Clip}
-#| eval: false
-
+``` r
 # Clip out each field
 BigValleyNDVI <- crop(NDVI, BigValleyPivot, mask = T)
 ClareNDVI <- crop(NDVI, ClarePivot, mask = T)
@@ -282,9 +260,7 @@ plot(BigValleyNDVI)
 
 And now for the new and improved version.
 
-```{r NewClip}
-#| eval: false
-
+``` r
 # Create a crop function to use in another map function
 cropFunc <- function(ndvi) {
   map(vectList, ~crop(ndvi, .x, mask = T))
@@ -301,9 +277,7 @@ And now local Moran.
 
 ## Spatial Autocorrelation
 
-```{r LocalMoran}
-#| eval: false
-
+``` r
 # Run local Moran
 LocMoran <- autocor(BigValleyNDVI, method = "moran", global = F)
 
@@ -313,9 +287,7 @@ plot(GStar)
 
 Cool, now lets see about automating it
 
-```{r AutoMoran}
-#| eval: false
-
+``` r
 # map, baby, map
 moranList <- map(cropByMonth, ~map(.x, ~autocor(.x, method = "moran", global = F)))
 
@@ -325,11 +297,12 @@ plot(moranList[[2]][[7]])
 
 ## Visualization
 
-Now I am going to try some stuff for visualizing all these fields. It sounds like to plot it with geom_raster I need to convert each one to a data frame that contains x, y, and the value at that location. Let's try.
+Now I am going to try some stuff for visualizing all these fields. It
+sounds like to plot it with geom_raster I need to convert each one to a
+data frame that contains x, y, and the value at that location. Let’s
+try.
 
-```{r 3DVisualization}
-#| eval: false
-
+``` r
 library(rayshader)
 
 # Turn months into a data frames
@@ -346,11 +319,10 @@ graph1 <- ggplot(dfJulyBigVal) +
 plot_gg(graph1, height_aes = "fill")
 ```
 
-Okay, so we've proven that we can render it in 3D, but can we animate a visual that contains all 7 maps?
+Okay, so we’ve proven that we can render it in 3D, but can we animate a
+visual that contains all 7 maps?
 
-```{r AnimatedVisualization}
-#| eval: false
-
+``` r
 library(gganimate)
 library(ggh4x)
 
@@ -413,11 +385,11 @@ animate(animPlot)
 anim_save("fieldNDVI.gif")
 ```
 
-And it works!!! I have exactly the animated graphic I was envisioning. Only took like 15 hours of coding aha. Now, I have to decide if I want to do the same for local Moran's I. Fudge it, why not?
+And it works!!! I have exactly the animated graphic I was envisioning.
+Only took like 15 hours of coding aha. Now, I have to decide if I want
+to do the same for local Moran’s I. Fudge it, why not?
 
-```{r AnimatedMorans}
-#| eval: false
-
+``` r
 # Change NDVI to Moran's Local I
 moranList <- map(moranList, ~map(.x, \(x) {
   names(x) <- "Local Moran's I"
@@ -458,15 +430,17 @@ ggplot(aes(x = x, y = y, fill = `Local Moran's I`)) +
 #  transition_time(date)
 ```
 
-Not going to lie, the exploratory data analysis I am doing on Moran's I makes me think this animation isn't really worth making. I don't think it will show anything that can't be more clearly seen on the NDVI animation.
+Not going to lie, the exploratory data analysis I am doing on Moran’s I
+makes me think this animation isn’t really worth making. I don’t think
+it will show anything that can’t be more clearly seen on the NDVI
+animation.
 
 ## Export
 
-Anyways, now I need to export these NDVI rasters. I will write a quick function to do that for me.
+Anyways, now I need to export these NDVI rasters. I will write a quick
+function to do that for me.
 
-```{r Export}
-#| eval: false
-
+``` r
 # Export function
 exportFunc <- function(monthList, date) {
   imap(monthList, \(x, field){
@@ -482,11 +456,10 @@ imap(cropByMonth, exportFunc)
 
 Beautiful.
 
-However, Now I'm feeling like maybe I should do an RGB crop too. Let's run it
+However, Now I’m feeling like maybe I should do an RGB crop too. Let’s
+run it
 
-```{r RGBCrop}
-#| eval: false
-
+``` r
 # Do the crop using cropFunc and mosaicRasters
 cropByMonthRGB <- map(mosaicRasters, cropFunc)
 
@@ -504,15 +477,19 @@ exportFunc <- function(monthList, date) {
 imap(cropByMonthRGB, exportFunc)
 ```
 
-And on that topic, let's see if there is a way to make my animation but do it with RGB rasters.
+And on that topic, let’s see if there is a way to make my animation but
+do it with RGB rasters.
 
 ## What if. . . RGB
 
-Okay, a quick Claude query suggested tidyterra which extends ggplot2's functionality with geom_spatraster_rgb() (and a bunch of other stuff). I am wondering if I am going to be able to facet in the same way and thinking probably not, but let's give it a try and see what happens. Otherwise, I will have to compute a hex color for every pixel and do the long dataframe thing again, which is doable but annoying.
+Okay, a quick Claude query suggested tidyterra which extends ggplot2’s
+functionality with geom_spatraster_rgb() (and a bunch of other stuff). I
+am wondering if I am going to be able to facet in the same way and
+thinking probably not, but let’s give it a try and see what happens.
+Otherwise, I will have to compute a hex color for every pixel and do the
+long dataframe thing again, which is doable but annoying.
 
-```{r Exploration}
-#| eval: false
-
+``` r
 library(tidyterra)
 
 # A basic plot
@@ -520,4 +497,9 @@ ggplot() +
   geom_spatraster_rgb(data = cropByMonthRGB[[6]][[3]], r = 3, b = 1, g = 2, stretch = "lin")
 ```
 
-On second thought, this might not be worth it. I am not going to be able to facet by field with tidyterra, and even if I could I am not sure how gganimate would handle the transitions between values that are non-numeric. If I did the long data frame method with hex colors that still doesn't solve the transition problem for gganimate. I think this might be the limit of what I can do here.
+On second thought, this might not be worth it. I am not going to be able
+to facet by field with tidyterra, and even if I could I am not sure how
+gganimate would handle the transitions between values that are
+non-numeric. If I did the long data frame method with hex colors that
+still doesn’t solve the transition problem for gganimate. I think this
+might be the limit of what I can do here.
